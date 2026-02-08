@@ -21,6 +21,9 @@ class MerchantProductController {
                         LEFT JOIN items_master im ON mp.item_master_id = im.id
                         LEFT JOIN merchants m ON mp.merchant_id = m.id
                         LEFT JOIN categories c ON im.category_id = c.id
+                        WHERE m.is_verified = TRUE 
+                        AND m.subscription_status = 'active'
+                        AND m.is_active = TRUE
                     `;
                     const params = [];
                     const conditions = [];
@@ -41,7 +44,7 @@ class MerchantProductController {
                     }
 
                     if (conditions.length > 0) {
-                        query += ' WHERE ' + conditions.join(' AND ');
+                        query += ' AND ' + conditions.join(' AND ');
                     }
 
                     query += ' ORDER BY mp.created_at DESC';

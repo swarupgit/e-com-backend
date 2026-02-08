@@ -10,6 +10,7 @@ router.post('/', authenticateToken, authorizeRoles('super_admin'), merchantContr
 router.put('/:id', authenticateToken, authorizeRoles('super_admin'), merchantController.update);
 router.put('/:id/verify', authenticateToken, authorizeRoles('super_admin'), merchantController.verify);
 router.put('/:id/subscription', authenticateToken, authorizeRoles('super_admin'), merchantController.updateSubscription);
+router.put('/:id/status', authenticateToken, authorizeRoles('super_admin'), merchantController.updateStatus);
 router.delete('/:id', authenticateToken, authorizeRoles('super_admin'), merchantController.delete);
 
 // Merchant own profile

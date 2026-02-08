@@ -60,6 +60,7 @@ CREATE TABLE merchants (
     subscription_amount DECIMAL(10, 2) DEFAULT 3000.00,
     payment_method ENUM('offline', 'online') DEFAULT 'offline',
     is_verified BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

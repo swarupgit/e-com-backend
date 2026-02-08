@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { pool } = require('../config/database');
+const { invalidateCachePattern } = require('../utils/cacheHelper');
 
 class MerchantController {
     // Get all merchants
@@ -291,6 +292,9 @@ class MerchantController {
                 return res.status(404).json({ error: 'Merchant not found' });
             }
 
+            // Invalidate all Redis cache
+            await invalidateCachePattern('*');
+
             res.json({ 
                 message: `Merchant ${is_verified ? 'verified' : 'unverified'} successfully` 
             });
@@ -322,7 +326,41 @@ class MerchantController {
                 return res.status(404).json({ error: 'Merchant not found' });
             }
 
+            // Invalidate all Redis cache
+            await invalidateCachePattern('*');
+
             res.json({ message: 'Subscription updated successfully' });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // Update merchant status (active/inactive)
+    async updateStatus(req, res, next) {
+        try {
+            const { id } = req.params;
+            const { is_active } = req.body;
+
+            if (typeof is_active !== 'boolean') {
+                return res.status(400).json({ error: 'is_active must be a boolean value' });
+            }
+
+            const [result] = await pool.query(
+                'UPDATE merchants SET is_active = ? WHERE id = ?',
+                [is_active, id]
+            );
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: 'Merchant not found' });
+            }
+
+            // Invalidate all Redis cache
+            await invalidateCachePattern('*');
+
+            res.json({ 
+                message: `Merchant ${is_active ? 'activated' : 'deactivated'} successfully`,
+                is_active 
+            });
         } catch (error) {
             next(error);
         }
