@@ -10,7 +10,11 @@ if (isProduction) {
 
     const poolConfig = connectionString ? {
         connectionString,
-        ssl: { rejectUnauthorized: false },
+        ssl: {
+            rejectUnauthorized: false,
+            // Disable hostname verification to avoid self-signed cert errors on Vercel
+            checkServerIdentity: () => undefined
+        },
         max: 10,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 10000
