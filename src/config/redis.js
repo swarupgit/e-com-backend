@@ -12,14 +12,28 @@ const connectRedis = async () => {
             return null;
         }
 
+        const redisUrl = process.env.REDIS_URL;
+
+        const socketOptions = {
+            connectTimeout: 5000,
+            reconnectStrategy: false
+        };
+
+        if (!redisUrl) {
+            socketOptions.host = process.env.REDIS_HOST || 'localhost';
+            socketOptions.port = Number(process.env.REDIS_PORT) || 6379;
+        }
+
+        // Vercel Redis uses TLS with rediss:// URLs
+        if (redisUrl && redisUrl.startsWith('rediss://')) {
+            socketOptions.tls = true;
+            socketOptions.rejectUnauthorized = false;
+        }
+
         redisClient = redis.createClient({
-            socket: {
-                host: process.env.REDIS_HOST || 'localhost',
-                port: process.env.REDIS_PORT || 6379,
-                connectTimeout: 5000, // 5 second timeout
-                reconnectStrategy: false // Disable automatic reconnection attempts
-            },
-            password: process.env.REDIS_PASSWORD || undefined
+            ...(redisUrl ? { url: redisUrl } : {}),
+            socket: socketOptions,
+            password: !redisUrl ? (process.env.REDIS_PASSWORD || undefined) : undefined
         });
 
         redisClient.on('error', (err) => {
