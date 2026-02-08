@@ -3,9 +3,16 @@ const path = require('path');
 const fs = require('fs');
 
 // Create uploads directory if it doesn't exist
-const uploadDir = './uploads/products';
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+// On Vercel, only /tmp is writable
+const isVercel = process.env.VERCEL === '1';
+const uploadDir = isVercel ? '/tmp/uploads/products' : './uploads/products';
+
+try {
+    if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+    }
+} catch (error) {
+    console.warn('⚠ Upload directory unavailable:', error.message);
 }
 
 const storage = multer.diskStorage({
