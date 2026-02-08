@@ -28,6 +28,23 @@ if (isProduction) {
 
     const pool = new Pool(poolConfig);
 
+    // Log which connection source is used (mask sensitive parts)
+    try {
+        if (connectionString) {
+            try {
+                const parsed = new URL(connectionString);
+                const hostInfo = parsed.hostname + (parsed.port ? `:${parsed.port}` : '');
+                console.log(`Using Postgres connection string (host: ${hostInfo})`);
+            } catch (e) {
+                console.log('Using Postgres connection string (host parsing failed)');
+            }
+        } else {
+            console.log(`Using Postgres host/port: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}`);
+        }
+    } catch (e) {
+        // ignore logging errors
+    }
+
     // Normalize pg Pool.query to return [rows, fields] like mysql2 and
     // convert MySQL-style `?` placeholders to Postgres $1,$2... so existing
     // code using `?` continues to work.
