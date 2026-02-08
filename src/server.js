@@ -32,8 +32,8 @@ app.use(express.urlencoded({ extended: true }));
 // Static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Health check
-app.get('/health', (req, res) => {
+// Health check (support both /health and /api/health)
+app.get(['/health', '/api/health'], (req, res) => {
     res.json({ status: 'OK', message: 'E-commerce API is running' });
 });
 
