@@ -6,6 +6,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "seed": "node scripts/run_sql.js",
+    "seed:merchant": "node scripts/seed_merchant.js",
+    "redis:inspect": "node scripts/redis_check_and_clear.js",
+    "redis:clear": "node scripts/clear_redis.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

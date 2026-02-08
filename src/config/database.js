@@ -17,6 +17,52 @@ if (isProduction) {
         connectionTimeoutMillis: 10000
     });
 
+    // Normalize pg Pool.query to return [rows, fields] like mysql2 and
+    // convert MySQL-style `?` placeholders to Postgres $1,$2... so existing
+    // code using `?` continues to work.
+    const _origQuery = pool.query.bind(pool);
+    pool.query = async (text, params) => {
+        let newText = text;
+        // If params exist and text contains '?', replace them with $1, $2, ...
+        if (params && params.length > 0 && typeof text === 'string' && text.indexOf('?') !== -1) {
+            let i = 0;
+            newText = text.replace(/\?/g, () => {
+                i += 1;
+                return '$' + i;
+            });
+        }
+
+        // For INSERT without RETURNING, add RETURNING id so we can mimic mysql insertId
+        const isInsert = typeof newText === 'string' && /^\s*insert\s+/i.test(newText);
+        const hasReturning = typeof newText === 'string' && /returning\s+/i.test(newText);
+        let execText = newText;
+        if (isInsert && !hasReturning) {
+            execText = `${newText} RETURNING id`;
+        }
+
+        const res = await _origQuery(execText, params);
+
+        // Normalize responses to mysql2 shape
+        if (res.command === 'SELECT') {
+            return [res.rows, res.fields];
+        }
+
+        if (res.command === 'INSERT') {
+            const insertId = res.rows && res.rows[0] ? (res.rows[0].id || null) : null;
+            const resultObj = {
+                insertId,
+                affectedRows: res.rowCount
+            };
+            return [resultObj, res.fields];
+        }
+
+        // For UPDATE/DELETE and others
+        const resultObj = {
+            affectedRows: res.rowCount
+        };
+        return [resultObj, res.fields];
+    };
+
     const testConnection = async () => {
         try {
             const client = await pool.connect();
