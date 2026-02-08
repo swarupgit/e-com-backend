@@ -56,7 +56,7 @@ app.use((req, res) => {
 // Error handler
 app.use(errorHandler);
 
-// Start server
+// Start server (local/dev)
 const startServer = async () => {
     try {
         // Test database connection
@@ -77,6 +77,9 @@ const startServer = async () => {
     }
 };
 
-startServer();
+// Only start the HTTP listener when running directly (not on Vercel)
+if (require.main === module) {
+    startServer();
+}
 
 module.exports = app;
