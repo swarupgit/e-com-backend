@@ -5,7 +5,16 @@ require('dotenv').config();
 const isProduction = process.env.NODE_ENV === 'production';
 
 if (isProduction) {
-    const pool = new Pool({
+    // Prefer full connection string if available (set this in Vercel env)
+    const connectionString = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
+
+    const poolConfig = connectionString ? {
+        connectionString,
+        ssl: { rejectUnauthorized: false },
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000
+    } : {
         host: process.env.DB_HOST || 'localhost',
         user: process.env.DB_USER || 'postgres',
         password: process.env.DB_PASSWORD || 'password',
@@ -15,7 +24,9 @@ if (isProduction) {
         max: 10,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 10000
-    });
+    };
+
+    const pool = new Pool(poolConfig);
 
     // Normalize pg Pool.query to return [rows, fields] like mysql2 and
     // convert MySQL-style `?` placeholders to Postgres $1,$2... so existing
