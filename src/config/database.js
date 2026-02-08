@@ -106,6 +106,67 @@ if (isProduction) {
         }
     };
 
+    // Add getConnection method to match MySQL interface
+    // PostgreSQL uses connect() which returns a client
+    pool.getConnection = async () => {
+        const client = await pool.connect();
+        
+        // Wrap client.query to maintain same placeholder conversion
+        const _origClientQuery = client.query.bind(client);
+        client.query = async (text, params) => {
+            let newText = text;
+            if (params && params.length > 0 && typeof text === 'string' && text.indexOf('?') !== -1) {
+                let i = 0;
+                newText = text.replace(/\?/g, () => {
+                    i += 1;
+                    return '$' + i;
+                });
+            }
+
+            const isInsert = typeof newText === 'string' && /^\s*insert\s+/i.test(newText);
+            const hasReturning = typeof newText === 'string' && /returning\s+/i.test(newText);
+            let execText = newText;
+            if (isInsert && !hasReturning) {
+                execText = `${newText} RETURNING id`;
+            }
+
+            const res = await _origClientQuery(execText, params);
+
+            if (res.command === 'SELECT') {
+                return [res.rows, res.fields];
+            }
+
+            if (res.command === 'INSERT') {
+                const insertId = res.rows && res.rows[0] ? (res.rows[0].id || null) : null;
+                const resultObj = {
+                    insertId,
+                    affectedRows: res.rowCount
+                };
+                return [resultObj, res.fields];
+            }
+
+            const resultObj = {
+                affectedRows: res.rowCount
+            };
+            return [resultObj, res.fields];
+        };
+
+        // Add commit and rollback methods
+        client.commit = async () => {
+            await client.query('COMMIT');
+        };
+
+        client.rollback = async () => {
+            await client.query('ROLLBACK');
+        };
+
+        client.beginTransaction = async () => {
+            await client.query('BEGIN');
+        };
+
+        return client;
+    };
+
     module.exports = { pool, testConnection };
 } else {
     const pool = mysql.createPool({

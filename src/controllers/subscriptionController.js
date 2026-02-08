@@ -7,7 +7,7 @@ class SubscriptionController {
             const { payment_status, merchant_id } = req.query;
             
             let query = `
-                SELECT sp.*, m.business_name as merchant_name, u.name as merchant_owner_name
+                SELECT sp.*, m.business_name, u.email as merchant_email, u.name as merchant_owner_name
                 FROM subscription_payments sp
                 LEFT JOIN merchants m ON sp.merchant_id = m.id
                 LEFT JOIN users u ON m.user_id = u.id
@@ -72,7 +72,7 @@ class SubscriptionController {
             const { id } = req.params;
 
             const [subscriptions] = await pool.query(
-                `SELECT sp.*, m.business_name as merchant_name, u.name as merchant_owner_name
+                `SELECT sp.*, m.business_name, u.email as merchant_email, u.name as merchant_owner_name
                  FROM subscription_payments sp
                  LEFT JOIN merchants m ON sp.merchant_id = m.id
                  LEFT JOIN users u ON m.user_id = u.id
@@ -139,9 +139,10 @@ class SubscriptionController {
             await connection.commit();
 
             const [subscriptions] = await connection.query(
-                `SELECT sp.*, m.business_name as merchant_name
+                `SELECT sp.*, m.business_name, u.email as merchant_email
                  FROM subscription_payments sp
                  LEFT JOIN merchants m ON sp.merchant_id = m.id
+                 LEFT JOIN users u ON m.user_id = u.id
                  WHERE sp.id = ?`,
                 [result.insertId]
             );

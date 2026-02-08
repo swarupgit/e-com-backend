@@ -9,18 +9,24 @@ class AuthController {
             const { email, password, name, phone } = req.body;
 
             // Validate required fields
-            if (!email || !password || !name) {
-                return res.status(400).json({ error: 'Email, password, and name are required' });
+            if (!password || !name || !phone) {
+                return res.status(400).json({ error: 'Password, name, and phone are required' });
             }
 
-            // Check if user already exists
+            // Validate phone number format (exactly 10 digits)
+            const phoneRegex = /^[0-9]{10}$/;
+            if (!phoneRegex.test(phone)) {
+                return res.status(400).json({ error: 'Phone number must be exactly 10 digits' });
+            }
+
+            // Check if user already exists (by email or phone)
             const [existing] = await pool.query(
-                'SELECT id FROM users WHERE email = ?',
-                [email]
+                'SELECT id FROM users WHERE phone = ? OR (email IS NOT NULL AND email = ?)',
+                [phone, email || null]
             );
 
             if (existing.length > 0) {
-                return res.status(400).json({ error: 'Email already registered' });
+                return res.status(400).json({ error: 'Email or phone already registered' });
             }
 
             // Hash password
@@ -29,7 +35,7 @@ class AuthController {
             // Create user
             const [result] = await pool.query(
                 'INSERT INTO users (email, password, name, phone, role) VALUES (?, ?, ?, ?, ?)',
-                [email, hashedPassword, name, phone || null, 'user']
+                [email || null, hashedPassword, name, phone, 'user']
             );
 
             // Generate token
@@ -60,14 +66,14 @@ class AuthController {
         try {
             const { email, password } = req.body;
 
-            if (!email || !password) {
-                return res.status(400).json({ error: 'Email and password are required' });
+            if ((!email) || !password) {
+                return res.status(400).json({ error: 'Email/phone and password are required' });
             }
 
-            // Find user
+            // Find user by email or phone
             const [users] = await pool.query(
-                'SELECT * FROM users WHERE email = ? AND is_active = TRUE',
-                [email]
+                'SELECT * FROM users WHERE (email = ? OR phone = ?) AND is_active = TRUE',
+                [email, email]
             );
 
             if (users.length === 0) {
